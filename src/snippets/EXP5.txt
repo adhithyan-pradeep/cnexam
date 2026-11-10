@@ -1,0 +1,92 @@
+Server program
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+int main() {
+    int server_fd, client_fd, n;
+    struct sockaddr_in server_addr;
+    server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_port = htons(8080);
+    bind(server_fd, (struct sockaddr *)&server_addr,
+         sizeof(server_addr));
+    listen(server_fd, 1);
+    printf("Waiting for client...\n");
+    client_fd = accept(server_fd, NULL, NULL);
+    read(client_fd, &n, sizeof(int));
+    int matrix[n][n];
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < n; j++)
+            read(client_fd, &matrix[i][j], sizeof(int));
+    int upper = 1, lower = 1, diagonal = 1;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (i > j && matrix[i][j] != 0)
+                upper = 0;
+            if (i < j && matrix[i][j] != 0)
+                lower = 0;
+            if (i != j && matrix[i][j] != 0)
+                diagonal = 0;
+        }
+    }
+    char result[50];
+
+    if (diagonal)
+        sprintf(result, "Diagonal Matrix");
+    else if (upper)
+        sprintf(result, "Upper Triangular Matrix");
+    else if (lower)
+        sprintf(result, "Lower Triangular Matrix");
+    else
+        sprintf(result, "Neither Upper, Lower nor Diagonal");
+    write(client_fd, result, sizeof(result));
+    close(client_fd);
+    close(server_fd);
+    return 0;
+}
+
+
+Client program
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <time.h>
+int main() {
+    int sock, n;
+    struct sockaddr_in server_addr;
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(8080);
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    connect(sock, (struct sockaddr *)&server_addr,
+            sizeof(server_addr));
+    printf("Enter order of matrix: ");
+    scanf("%d", &n);
+
+    int matrix[n][n];
+    srand(time(NULL));
+    printf("\nGenerated Matrix:\n");
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            matrix[i][j] = rand() % 50 + 1;
+            printf("%d\t", matrix[i][j]);
+        }
+        printf("\n");
+    }
+    write(sock, &n, sizeof(int))
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < n; j++)
+            write(sock, &matrix[i][j], sizeof(int));
+    char result[50];
+    read(sock, result, sizeof(result));
+    printf("\nMatrix Type: %s\n", result);
+    close(sock);
+    return 0;
+}
